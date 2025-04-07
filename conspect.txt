@@ -1,0 +1,40 @@
+Существует несколько способов запустить сцену:
+1. Указать в свойстве super, что сцена запускается самостоятельно active: true
+2. Написать game.scene.start(SCENE_KEYS.PRELOAD_SCENE)
+3. Указать в конфиге scene: [PreloadScene]. Тогда game.scene.add не нужно писать, и запустится первая в массиве сцена.
+
+
+В phaser есть так называемые контейнеры, которые позовляют вмешать в себя другие элементы. Таким образом можно сделать различные bar, где внутренние элементы будут зависеть от внешнего. 
+	this.add.container(x, y, [внутренние элементы]);
+
+Текст. Для них всегда начало координат это левый верхний угол, когда как обычно для других объектов это центр. 
+this.add.text(x, y, 'текст', {color: '#fff', fontsSize: '32px' });
+
+Прямоугольник.
+this.add.rectangle(x, y, width, height, color, opacity)
+    .setStrokeStyle(borderWidth, borderColor, borderOpacity);
+
+Обработчики событий клавиатуры.
+Phaser.Input.Keyboard.JustDown(this.#cursorKeys.space) показывает true в момент нажатия 
+this.#cursorKeys.space.isDown показывает true все время зажатия 
+
+Image. //создали статичный объект image
+		//this предоставляет доступ к объектам и методам phaser three scene
+		//setOrigin используется, чтобы указать где нулевая точка самого изображения. По умолчанию она по центру изображения
+
+    
+Tween анимации. Анимация - это способ управления одним из свойств объекта. 
+this.#scene.tweens.add({
+			targets: this.#middle, //объект
+			displayWidth: width, //изменяемое свойство и его новое значение
+			duration: 1000, //длительность анимации
+			ease: Phaser.Math.Easing.Sine.Out, //функция замедления
+			onUpdate: () => {
+				this.#rightCap.x = this.#middle.x + this.#middle.displayWidth;
+				const isVisible = this.#middle.displayWidth > 0;
+				this.#leftCap.visible = isVisible;
+				this.#middle.visible = isVisible;
+				this.#rightCap.visible = isVisible;
+			},
+			onComplete: () => {},
+		});
