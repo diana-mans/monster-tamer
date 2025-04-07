@@ -2,6 +2,7 @@ import { MONSTER_ASSET_KEYS, UI_ASSET_KEYS } from '../../../assets/asset-keys.js
 import { DIRECTION } from '../../../common/direction.js';
 import Phaser from '../../../lib/phaser.js';
 import { exhaustiveGuard } from '../../../utils/guard.js';
+import { animateText } from '../../../utils/text-utils.js';
 import { PlayerBattleMonster } from '../../monsters/player-battle-monster.js';
 import { BATTLE_UI_TEXT_STYLE } from './battle-menu-config.js';
 import {
@@ -60,6 +61,12 @@ export class BattleMenu {
 	/** @type {Phaser.Tweens.Tween} */
 	#userInputCursorPhaserTween;
 
+	/** @type {boolean} */
+	#queuedMessagesSkipAnimation;
+
+	/** @type {boolean} */
+	#queuedMessageAnimationPlaying;
+
 	/**
 	 * @param {Phaser.Scene} scene the Phaser 3 Scene the battle menu will be added to
 	 * @param {PlayerBattleMonster} activePlayerMonster
@@ -74,6 +81,8 @@ export class BattleMenu {
 		this.#queuedInfoPanelMessages = [];
 		this.#waitingForPlayerInput = false;
 		this.#selectedAttackIndex = undefined;
+		this.#queuedMessagesSkipAnimation = false;
+		this.#queuedMessageAnimationPlaying = false;
 		this.#createMainInfoPane();
 		this.#createMainBattleMenu();
 		this.#createMonsterAttackSubMenu();
@@ -143,14 +152,21 @@ export class BattleMenu {
 	 * @param {'OK'|'CANCEL'|DIRECTION} input
 	 */
 	handlePlayerInput(input) {
+		//если сейчас идет анимация, то ничего не делаем
+		if (this.#queuedMessageAnimationPlaying && input === 'OK') {
+			return;
+		}
+		//если ждем действия пользователя, то выводим следующее сообшение
 		if (this.#waitingForPlayerInput && (input === 'CANCEL' || input === 'OK')) {
 			this.#updateInfoPanelWithMessage();
 			return;
 		}
+		//если shift то возвращаемся в главное меню
 		if (input === 'CANCEL') {
 			this.#switchToMainBattleMenu();
 			return;
 		}
+		//если пробел, то в зависимости от страницы выбираем меню
 		if (input === 'OK') {
 			if (this.#activeBattleMenu === ACTIVE_BATTE_MENU.BATTLE_MAIN) {
 				this.#handlePlayerChooseMainBattleOption();
@@ -163,6 +179,8 @@ export class BattleMenu {
 
 			return;
 		}
+
+		//если нажаты стрелочки
 		this.#updateSelectedBattleMenuOption(input);
 		this.#moveMainBattleMenuCursor();
 		this.#updateSelectedMoveMenuOption(input);
@@ -170,40 +188,56 @@ export class BattleMenu {
 	}
 
 	/**
-	 *
+	 * @param {string} message
+	 * @param {() => void} [callback]
+	 * @param {boolean} [skipAnimation=false]
+	 */
+	updateInfoPanelMessageNoInputRequired(message, callback, skipAnimation = false) {
+		this.#battleTextGameObjectLine1.setText('').setAlpha(1);
+
+		if (skipAnimation) {
+			this.#battleTextGameObjectLine1.setText(message);
+			this.#waitingForPlayerInput = false;
+			if (callback) {
+				callback();
+				//вместо курсора выполняем обычный callback, там меняются состояния и выводится новый текст
+			}
+			return;
+		}
+		animateText(this.#scene, this.#battleTextGameObjectLine1, message, {
+			delay: 50,
+			callback: () => {
+				this.#waitingForPlayerInput = false;
+				if (callback) {
+					callback();
+					//вместо курсора выполняем обычный callback, там меняются состояния и выводится новый текст
+				}
+			},
+		});
+	}
+
+	/**
 	 * @param {string[]} messages
 	 * @param {() => void} [callback]
+	 * @param {boolean} [skipAnimation=false]
 	 */
-	updateInfoPanelMessagesAndWaitForInput(messages, callback) {
+	updateInfoPanelMessagesAndWaitForInput(messages, callback, skipAnimation = false) {
 		this.#queuedInfoPanelMessages = messages;
 		this.#queuedInfoPanelCallback = callback;
+		this.#queuedMessagesSkipAnimation = skipAnimation;
 
 		this.#updateInfoPanelWithMessage();
 	}
 
-	/**
-	 *
-	 * @param {string} message
-	 * @param {() => void} [callback]
-	 */
-	updateInfoPanelMessageNoInputRequired(message, callback) {
-		this.#battleTextGameObjectLine1.setText('').setAlpha(1);
-
-		//TODO animate message
-		this.#battleTextGameObjectLine1.setText(message);
-		this.#waitingForPlayerInput = false;
-		if (callback) {
-			callback();
-		}
-		// this.#waitingForPlayerInput = true;
-	}
-
 	#updateInfoPanelWithMessage() {
+		//пока анимация не закончится мы не принимает события пользователя
 		this.#waitingForPlayerInput = false;
+		//создаем пустую строку
 		this.#battleTextGameObjectLine1.setText('').setAlpha(1);
+		//скрываем курсор, который говорит, что мы ждем действия пользователя
 		this.hideInputCursor();
 
-		//check if all messages have been dispayed from the queue and call the callback
+		//если сообщений больше нет, выполяем callback функцию, дальше не идем
 		if (this.#queuedInfoPanelMessages.length === 0) {
 			if (this.#queuedInfoPanelCallback) {
 				this.#queuedInfoPanelCallback();
@@ -212,11 +246,32 @@ export class BattleMenu {
 			return;
 		}
 
-		//get first message from queue and animate
+		//Берем первое сообщение и сразу удаляем его из очереди
 		const messageToDisplay = this.#queuedInfoPanelMessages.shift();
-		this.#battleTextGameObjectLine1.setText(messageToDisplay);
-		this.#waitingForPlayerInput = true;
-		this.playerInputCursorAnimation();
+		//если стоит скип, то сразу показываем сообщение пользователю, дальше не идем
+		if (this.#queuedMessagesSkipAnimation) {
+			this.#battleTextGameObjectLine1.setText(messageToDisplay);
+			this.#queuedMessageAnimationPlaying = false;
+			this.#waitingForPlayerInput = true;
+
+			//И выполняем callback функцию
+			if (this.#queuedInfoPanelCallback) {
+				this.#queuedInfoPanelCallback();
+				this.#queuedInfoPanelCallback = undefined;
+			}
+			return;
+		}
+		//Если скипа нет, то анимируем текст
+		this.#queuedMessageAnimationPlaying = true;
+		animateText(this.#scene, this.#battleTextGameObjectLine1, messageToDisplay, {
+			delay: 50,
+			callback: () => {
+				//В конце возвращаем курсор и ждем действия пользователя
+				this.playerInputCursorAnimation();
+				this.#waitingForPlayerInput = true;
+				this.#queuedMessageAnimationPlaying = false;
+			},
+		});
 	}
 
 	#createMainBattleMenu() {
