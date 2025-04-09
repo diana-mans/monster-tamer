@@ -64,7 +64,7 @@ export class BattleScene extends Phaser.Scene {
 				assetFrame: 0,
 				currentHp: 25,
 				maxHp: 25,
-				baseAttack: 5,
+				baseAttack: 15,
 				attackIds: [1],
 				currentLevel: 5,
 			},
@@ -77,7 +77,7 @@ export class BattleScene extends Phaser.Scene {
 				assetFrame: 0,
 				currentHp: 25,
 				maxHp: 25,
-				baseAttack: 15,
+				baseAttack: 5,
 				attackIds: [2],
 				currentLevel: 5,
 			},
@@ -157,9 +157,11 @@ export class BattleScene extends Phaser.Scene {
 			}`,
 
 			() => {
-				this.time.delayedCall(1200, () => {
-					this.#activeEnemyMonster.takeDamage(this.#activePlayerMonster.baseAttack, () => {
-						this.#enemyAttack();
+				this.time.delayedCall(500, () => {
+					this.#activeEnemyMonster.playTakeDamageAnimation(() => {
+						this.#activeEnemyMonster.takeDamage(this.#activePlayerMonster.baseAttack, () => {
+							this.#enemyAttack();
+						});
 					});
 				});
 			},
@@ -174,9 +176,11 @@ export class BattleScene extends Phaser.Scene {
 		this.#battleMenu.updateInfoPanelMessageNoInputRequired(
 			`for ${this.#activeEnemyMonster.name} used ${this.#activeEnemyMonster.attacks[0].name}`,
 			() => {
-				this.time.delayedCall(1200, () => {
-					this.#activePlayerMonster.takeDamage(this.#activeEnemyMonster.baseAttack, () => {
-						this.#battleStateMachine.setState(BATTLE_STATES.POST_ATTACK_CHECK);
+				this.time.delayedCall(500, () => {
+					this.#activePlayerMonster.playTakeDamageAnimation(() => {
+						this.#activePlayerMonster.takeDamage(this.#activeEnemyMonster.baseAttack, () => {
+							this.#battleStateMachine.setState(BATTLE_STATES.POST_ATTACK_CHECK);
+						});
 					});
 				});
 			},
@@ -184,24 +188,28 @@ export class BattleScene extends Phaser.Scene {
 	}
 	#postBattleSequenceCheck() {
 		if (this.#activeEnemyMonster.isFainted) {
-			this.#battleMenu.updateInfoPanelMessagesAndWaitForInput(
-				[`Wild ${this.#activeEnemyMonster.name} fainted`, `You have gained some experience`],
-				() => {
-					this.#battleStateMachine.setState(BATTLE_STATES.FINISHED);
-				},
-			);
+			this.#activeEnemyMonster.playDeathAnimation(() => {
+				this.#battleMenu.updateInfoPanelMessagesAndWaitForInput(
+					[`Wild ${this.#activeEnemyMonster.name} fainted`, `You have gained some experience`],
+					() => {
+						this.#battleStateMachine.setState(BATTLE_STATES.FINISHED);
+					},
+				);
+			});
 			return;
 		}
 		if (this.#activePlayerMonster.isFainted) {
-			this.#battleMenu.updateInfoPanelMessagesAndWaitForInput(
-				[
-					`${this.#activeEnemyMonster.name} fainted`,
-					`You have no more monsters, escaping to safety...`,
-				],
-				() => {
-					this.#battleStateMachine.setState(BATTLE_STATES.FINISHED);
-				},
-			);
+			this.#activePlayerMonster.playDeathAnimation(() => {
+				this.#battleMenu.updateInfoPanelMessagesAndWaitForInput(
+					[
+						`${this.#activeEnemyMonster.name} fainted`,
+						`You have no more monsters, escaping to safety...`,
+					],
+					() => {
+						this.#battleStateMachine.setState(BATTLE_STATES.FINISHED);
+					},
+				);
+			});
 			return;
 		}
 		this.#battleMenu.showMainBattleMenu();
@@ -231,30 +239,34 @@ export class BattleScene extends Phaser.Scene {
 			name: BATTLE_STATES.PRE_BATTLE_INFO,
 			onEnter: () => {
 				//Дожидаемся появления вражеского монстра и сообщаем игроку о нем
-				this.#battleMenu.updateInfoPanelMessagesAndWaitForInput(
-					[`wild ${this.#activeEnemyMonster.name} appeared!`],
-					() => {
-						//типа ждем окончания анимации текста
-						this.time.delayedCall(500, () => {
+				this.#activeEnemyMonster.playMonsterAppearAnimation(() => {
+					this.#activeEnemyMonster.playHealthBarAppearAnimation(() => undefined);
+					this.#battleMenu.updateInfoPanelMessagesAndWaitForInput(
+						[`wild ${this.#activeEnemyMonster.name} appeared!`],
+						() => {
+							//типа ждем окончания анимации текста
 							this.#battleStateMachine.setState(BATTLE_STATES.BRING_OUT_MONSTER);
-						});
-					},
-				);
+						},
+					);
+				});
 			},
 		});
 		this.#battleStateMachine.addState({
 			name: BATTLE_STATES.BRING_OUT_MONSTER,
 			onEnter: () => {
 				//Дожидаемся появления монстра игрока и сообщаем игроку о нем
-				this.#battleMenu.updateInfoPanelMessageNoInputRequired(
-					`go ${this.#activePlayerMonster.name}!`,
-					() => {
-						//типа ждем окончания анимации текста
-						this.time.delayedCall(1200, () => {
-							this.#battleStateMachine.setState(BATTLE_STATES.PLAYER_INPUT);
-						});
-					},
-				);
+				this.#activePlayerMonster.playMonsterAppearAnimation(() => {
+					this.#activePlayerMonster.playHealthBarAppearAnimation(() => undefined);
+					this.#battleMenu.updateInfoPanelMessageNoInputRequired(
+						`go ${this.#activePlayerMonster.name}!`,
+						() => {
+							//типа ждем окончания анимации текста
+							this.time.delayedCall(1200, () => {
+								this.#battleStateMachine.setState(BATTLE_STATES.PLAYER_INPUT);
+							});
+						},
+					);
+				});
 			},
 		});
 		this.#battleStateMachine.addState({
