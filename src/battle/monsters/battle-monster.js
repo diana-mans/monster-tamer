@@ -1,4 +1,5 @@
 import { BATTLE_ASSET_KEYS } from '../../assets/asset-keys.js';
+import { KENNY_FUTURE_NARROW_FONT_NAME } from '../../assets/font-keys.js';
 import Phaser from '../../lib/phaser.js';
 import { DataUtils } from '../../utils/data-utils.js';
 import { HealthBar } from '../ui/health-bar.js';
@@ -151,6 +152,7 @@ export class BattleMonster {
 		this._healthBar = new HealthBar(this._scene, 34, 34);
 
 		const monsterNameGameText = this._scene.add.text(30, 20, this.name, {
+			fontFamily: KENNY_FUTURE_NARROW_FONT_NAME,
 			color: '#7E3D3F',
 			fontSize: '32px',
 		});
@@ -165,11 +167,13 @@ export class BattleMonster {
 			23,
 			`L${this.level}`,
 			{
+				fontFamily: KENNY_FUTURE_NARROW_FONT_NAME,
 				color: '#ED474B',
 				fontSize: '28px',
 			},
 		);
 		const monsterHpText = this._scene.add.text(30, 55, 'HP', {
+			fontFamily: KENNY_FUTURE_NARROW_FONT_NAME,
 			color: '#FF6505',
 			fontSize: '24px',
 			fontStyle: 'italic',
