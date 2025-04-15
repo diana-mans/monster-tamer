@@ -1,5 +1,6 @@
 import { MONSTER_ASSET_KEYS, UI_ASSET_KEYS } from '../../../assets/asset-keys.js';
 import { DIRECTION } from '../../../common/direction.js';
+import { SKIP_BATTLE_ANIMATIONS } from '../../../config.js';
 import Phaser from '../../../lib/phaser.js';
 import { exhaustiveGuard } from '../../../utils/guard.js';
 import { animateText } from '../../../utils/text-utils.js';
@@ -253,12 +254,8 @@ export class BattleMenu {
 			this.#battleTextGameObjectLine1.setText(messageToDisplay);
 			this.#queuedMessageAnimationPlaying = false;
 			this.#waitingForPlayerInput = true;
+			this.playerInputCursorAnimation();
 
-			//И выполняем callback функцию
-			if (this.#queuedInfoPanelCallback) {
-				this.#queuedInfoPanelCallback();
-				this.#queuedInfoPanelCallback = undefined;
-			}
 			return;
 		}
 		//Если скипа нет, то анимируем текст
@@ -579,9 +576,13 @@ export class BattleMenu {
 			return;
 		}
 		if (this.#selectedBattleMenuOption === BATTLE_MENU_OPTIONS.ITEM) {
-			this.updateInfoPanelMessagesAndWaitForInput(['Your bag is empty...'], () => {
-				this.#switchToMainBattleMenu();
-			});
+			this.updateInfoPanelMessagesAndWaitForInput(
+				['Your bag is empty...'],
+				() => {
+					this.#switchToMainBattleMenu();
+				},
+				SKIP_BATTLE_ANIMATIONS,
+			);
 			this.#activeBattleMenu = ACTIVE_BATTE_MENU.BATTLE_ITEM;
 
 			// TODO
@@ -593,15 +594,20 @@ export class BattleMenu {
 				() => {
 					this.#switchToMainBattleMenu();
 				},
+				SKIP_BATTLE_ANIMATIONS,
 			);
 			this.#activeBattleMenu = ACTIVE_BATTE_MENU.BATTLE_SWITCH;
 			// TODO
 			return;
 		}
 		if (this.#selectedBattleMenuOption === BATTLE_MENU_OPTIONS.FLEE) {
-			this.updateInfoPanelMessagesAndWaitForInput(['You fail to run away...'], () => {
-				this.#switchToMainBattleMenu();
-			});
+			this.updateInfoPanelMessagesAndWaitForInput(
+				['You fail to run away...'],
+				() => {
+					this.#switchToMainBattleMenu();
+				},
+				SKIP_BATTLE_ANIMATIONS,
+			);
 			this.#activeBattleMenu = ACTIVE_BATTE_MENU.BATTLE_FLEE;
 			// TODO
 			return;

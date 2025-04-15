@@ -25,6 +25,7 @@ import Phaser from '../lib/phaser.js';
  * @property {Phaser.Scene} scene
  * @property {Monster} monsterDetails
  * @property {number} [scaleHealthBarBgImgByY=1]
+ * @property {boolean} [skipBattleAnimations=false]
  */
 
 /**

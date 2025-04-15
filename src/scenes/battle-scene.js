@@ -5,6 +5,7 @@ import { PlayerBattleMonster } from '../battle/monsters/player-battle-monster.js
 import { HealthBar } from '../battle/ui/health-bar.js';
 import { BattleMenu } from '../battle/ui/menu/battle-menu.js';
 import { DIRECTION } from '../common/direction.js';
+import { SKIP_BATTLE_ANIMATIONS } from '../config.js';
 import Phaser from '../lib/phaser.js';
 import { StateMachine } from '../utils/state-machine.js';
 import { SCENE_KEYS } from './scene-keys.js';
@@ -68,6 +69,7 @@ export class BattleScene extends Phaser.Scene {
 				attackIds: [1],
 				currentLevel: 5,
 			},
+			skipBattleAnimations: SKIP_BATTLE_ANIMATIONS,
 		});
 		this.#activePlayerMonster = new PlayerBattleMonster({
 			scene: this,
@@ -81,6 +83,7 @@ export class BattleScene extends Phaser.Scene {
 				attackIds: [2],
 				currentLevel: 5,
 			},
+			skipBattleAnimations: SKIP_BATTLE_ANIMATIONS,
 		});
 
 		//рендерим осн и доп инф-ые панели
@@ -165,6 +168,8 @@ export class BattleScene extends Phaser.Scene {
 					});
 				});
 			},
+
+			SKIP_BATTLE_ANIMATIONS,
 		);
 	}
 
@@ -184,6 +189,7 @@ export class BattleScene extends Phaser.Scene {
 					});
 				});
 			},
+			SKIP_BATTLE_ANIMATIONS,
 		);
 	}
 	#postBattleSequenceCheck() {
@@ -194,6 +200,7 @@ export class BattleScene extends Phaser.Scene {
 					() => {
 						this.#battleStateMachine.setState(BATTLE_STATES.FINISHED);
 					},
+					SKIP_BATTLE_ANIMATIONS,
 				);
 			});
 			return;
@@ -208,6 +215,7 @@ export class BattleScene extends Phaser.Scene {
 					() => {
 						this.#battleStateMachine.setState(BATTLE_STATES.FINISHED);
 					},
+					SKIP_BATTLE_ANIMATIONS,
 				);
 			});
 			return;
@@ -247,6 +255,7 @@ export class BattleScene extends Phaser.Scene {
 							//типа ждем окончания анимации текста
 							this.#battleStateMachine.setState(BATTLE_STATES.BRING_OUT_MONSTER);
 						},
+						SKIP_BATTLE_ANIMATIONS,
 					);
 				});
 			},
@@ -265,6 +274,7 @@ export class BattleScene extends Phaser.Scene {
 								this.#battleStateMachine.setState(BATTLE_STATES.PLAYER_INPUT);
 							});
 						},
+						SKIP_BATTLE_ANIMATIONS,
 					);
 				});
 			},
@@ -310,9 +320,13 @@ export class BattleScene extends Phaser.Scene {
 		this.#battleStateMachine.addState({
 			name: BATTLE_STATES.FLEE_ATTEMPT,
 			onEnter: () => {
-				this.#battleMenu.updateInfoPanelMessagesAndWaitForInput([`You got away safely!`], () => {
-					this.#battleStateMachine.setState(BATTLE_STATES.FINISHED);
-				});
+				this.#battleMenu.updateInfoPanelMessagesAndWaitForInput(
+					[`You got away safely!`],
+					() => {
+						this.#battleStateMachine.setState(BATTLE_STATES.FINISHED);
+					},
+					SKIP_BATTLE_ANIMATIONS,
+				);
 			},
 		});
 

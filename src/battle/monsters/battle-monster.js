@@ -22,6 +22,8 @@ export class BattleMonster {
 	_monsterAttacks;
 	/** @type {Phaser.GameObjects.Container} */
 	_phaserHealthBarContainer;
+	/** @type {boolean} */
+	_skipBattleAnimations;
 
 	/**
 	 * @param {import('../../types/typedef.js').BattleMonsterConfig} config
@@ -29,6 +31,7 @@ export class BattleMonster {
 	 */
 	constructor(config, position) {
 		this._scene = config.scene;
+		this._skipBattleAnimations = config.skipBattleAnimations || false;
 		this._monsterDetails = config.monsterDetails;
 		this._currentHealth = config.monsterDetails.currentHp;
 		this._maxHealth = config.monsterDetails.maxHp;
@@ -110,6 +113,12 @@ export class BattleMonster {
 	 * @returns {void}
 	 */
 	playTakeDamageAnimation(callback) {
+		if (this._skipBattleAnimations) {
+			this._phaserGameObject.setAlpha(1);
+			callback();
+			return;
+		}
+
 		this._scene.tweens.add({
 			targets: this._phaserGameObject,
 			delay: 0,
