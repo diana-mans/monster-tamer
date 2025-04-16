@@ -1,5 +1,6 @@
 import Phaser from '../lib/phaser.js';
 import {
+	ATTACK_ASSET_KEYS,
 	BATTLE_ASSET_KEYS,
 	BATTLE_BACKGROUND_ASSET_KEYS,
 	DATA_ASSET_KEYS,
@@ -28,6 +29,7 @@ export class PreloadScene extends Phaser.Scene {
 	preload() {
 		const monsterTamerAssetPath = 'assets/images/monster-tamer';
 		const kenneysAssetPath = 'assets/images/kenneys-assets';
+		const pimenAssetPath = 'assets/images/pimen';
 
 		//battle backgrounds
 		this.load.image(
@@ -76,6 +78,25 @@ export class PreloadScene extends Phaser.Scene {
 			MONSTER_ASSET_KEYS.IGUANIGNITE,
 			`${monsterTamerAssetPath}/monsters/iguanignite.png`,
 		);
+
+		//attack assets
+		this.load.spritesheet(ATTACK_ASSET_KEYS.ICE_SHARD, `${pimenAssetPath}/ice-attack/active.png`, {
+			frameWidth: 32,
+			frameHeight: 32,
+		});
+		this.load.spritesheet(
+			ATTACK_ASSET_KEYS.ICE_SHARD_START,
+			`${pimenAssetPath}/ice-attack/start.png`,
+			{
+				frameWidth: 32,
+				frameHeight: 32,
+			},
+		);
+		this.load.spritesheet(ATTACK_ASSET_KEYS.SLASH, `${pimenAssetPath}/slash.png`, {
+			frameWidth: 48,
+			frameHeight: 48,
+		});
+
 		//ui assets
 		this.load.image(UI_ASSET_KEYS.CURSOR, `${monsterTamerAssetPath}/ui/cursor.png`);
 

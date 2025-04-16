@@ -1,8 +1,9 @@
-import { BATTLE_ASSET_KEYS, MONSTER_ASSET_KEYS } from '../assets/asset-keys.js';
+import { MONSTER_ASSET_KEYS } from '../assets/asset-keys.js';
+import { ATTACK_KEYS } from '../battle/attacks/attack-keys.js';
+import { ATTACK_TARGET, AttackManager } from '../battle/attacks/attack-manager.js';
 import { Background } from '../battle/background.js';
 import { EnemyBattleMonster } from '../battle/monsters/enemy-battle-monster.js';
 import { PlayerBattleMonster } from '../battle/monsters/player-battle-monster.js';
-import { HealthBar } from '../battle/ui/health-bar.js';
 import { BattleMenu } from '../battle/ui/menu/battle-menu.js';
 import { DIRECTION } from '../common/direction.js';
 import { SKIP_BATTLE_ANIMATIONS } from '../config.js';
@@ -40,6 +41,9 @@ export class BattleScene extends Phaser.Scene {
 
 	/** @type {StateMachine} */
 	#battleStateMachine;
+
+	/** @type {AttackManager} */
+	#attackManager;
 
 	constructor() {
 		super({
@@ -90,6 +94,8 @@ export class BattleScene extends Phaser.Scene {
 		this.#battleMenu = new BattleMenu(this, this.#activePlayerMonster);
 
 		this.#createBattleStateMachine();
+
+		this.#attackManager = new AttackManager(this, SKIP_BATTLE_ANIMATIONS);
 
 		this.#cursorKeys = this.input.keyboard.createCursorKeys();
 	}
@@ -161,11 +167,17 @@ export class BattleScene extends Phaser.Scene {
 
 			() => {
 				this.time.delayedCall(500, () => {
-					this.#activeEnemyMonster.playTakeDamageAnimation(() => {
-						this.#activeEnemyMonster.takeDamage(this.#activePlayerMonster.baseAttack, () => {
-							this.#enemyAttack();
-						});
-					});
+					this.#attackManager.playAttackAnimation(
+						this.#activePlayerMonster.attacks[this.#activePlayerAttackIndex].animationName,
+						ATTACK_TARGET.ENEMY,
+						() => {
+							this.#activeEnemyMonster.playTakeDamageAnimation(() => {
+								this.#activeEnemyMonster.takeDamage(this.#activePlayerMonster.baseAttack, () => {
+									this.#enemyAttack();
+								});
+							});
+						},
+					);
 				});
 			},
 
@@ -182,11 +194,17 @@ export class BattleScene extends Phaser.Scene {
 			`for ${this.#activeEnemyMonster.name} used ${this.#activeEnemyMonster.attacks[0].name}`,
 			() => {
 				this.time.delayedCall(500, () => {
-					this.#activePlayerMonster.playTakeDamageAnimation(() => {
-						this.#activePlayerMonster.takeDamage(this.#activeEnemyMonster.baseAttack, () => {
-							this.#battleStateMachine.setState(BATTLE_STATES.POST_ATTACK_CHECK);
-						});
-					});
+					this.#attackManager.playAttackAnimation(
+						this.#activeEnemyMonster.attacks[0].animationName,
+						ATTACK_TARGET.PLAYER,
+						() => {
+							this.#activePlayerMonster.playTakeDamageAnimation(() => {
+								this.#activePlayerMonster.takeDamage(this.#activeEnemyMonster.baseAttack, () => {
+									this.#battleStateMachine.setState(BATTLE_STATES.POST_ATTACK_CHECK);
+								});
+							});
+						},
+					);
 				});
 			},
 			SKIP_BATTLE_ANIMATIONS,
