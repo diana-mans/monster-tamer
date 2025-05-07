@@ -28,7 +28,11 @@ export class WorldScene extends Phaser.Scene {
 		console.log(`[${WorldScene.name}:create] invoked`);
 		this.add.image(0, 0, WORLD_ASSET_KEYS.WORLD_BACKGROUND, 0).setOrigin(0);
 
-		this.#player = new Player({ scene: this, position: PLAYER_POSITION });
+		this.#player = new Player({
+			scene: this,
+			position: PLAYER_POSITION,
+			direction: DIRECTION.DOWN,
+		});
 		this.#controls = new Controls(this);
 	}
 
