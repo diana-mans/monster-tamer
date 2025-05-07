@@ -3,10 +3,12 @@ import {
 	ATTACK_ASSET_KEYS,
 	BATTLE_ASSET_KEYS,
 	BATTLE_BACKGROUND_ASSET_KEYS,
+	CHARACTER_ASSET_KEYS,
 	DATA_ASSET_KEYS,
 	HEALTH_BAR_ASSET_KEYS,
 	MONSTER_ASSET_KEYS,
 	UI_ASSET_KEYS,
+	WORLD_ASSET_KEYS,
 } from '../assets/asset-keys.js';
 import { KENNY_FUTURE_NARROW_FONT_NAME } from '../assets/font-keys.js';
 import { WebFontFileLoader } from '../assets/web-font-file-loader.js';
@@ -27,9 +29,12 @@ export class PreloadScene extends Phaser.Scene {
 
 	// Предзагрузка ресурсов
 	preload() {
+		console.log(`[${PreloadScene.name}:preload] invoked`);
 		const monsterTamerAssetPath = 'assets/images/monster-tamer';
 		const kenneysAssetPath = 'assets/images/kenneys-assets';
 		const pimenAssetPath = 'assets/images/pimen';
+		const axulArtAssetPath = 'assets/images/axulart';
+		const pdGamesAssetPath = 'assets/images/parabellum-games';
 
 		//battle backgrounds
 		this.load.image(
@@ -105,12 +110,28 @@ export class PreloadScene extends Phaser.Scene {
 
 		//load custom font with loader plugin
 		this.load.addFile(new WebFontFileLoader(this.load, [KENNY_FUTURE_NARROW_FONT_NAME]));
+
+		//load world assets
+		this.load.image(
+			WORLD_ASSET_KEYS.WORLD_BACKGROUND,
+			`${monsterTamerAssetPath}/map/level_background.png`,
+		);
+
+		//load character assets
+		this.load.spritesheet(CHARACTER_ASSET_KEYS.PLAYER, `${axulArtAssetPath}/character/custom.png`, {
+			frameWidth: 64,
+			frameHeight: 88,
+		});
+		this.load.spritesheet(CHARACTER_ASSET_KEYS.NPC, `${pdGamesAssetPath}/characters.png`, {
+			frameWidth: 16,
+			frameHeight: 16,
+		});
 	}
 
 	// Создание объектов и размещение их на сцене
 	create() {
 		//когда все необходимое загрузится, мы запустим другую сцену, а эта сцена закончится
-		this.scene.start(SCENE_KEYS.BATTLE_SCENE);
+		this.scene.start(SCENE_KEYS.WORLD_SCENE);
 	}
 
 	// Обновление каждый кадр
