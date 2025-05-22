@@ -13,6 +13,7 @@ import {
 import { KENNY_FUTURE_NARROW_FONT_NAME } from '../assets/font-keys.js';
 import { WebFontFileLoader } from '../assets/web-font-file-loader.js';
 import { SCENE_KEYS } from './scene-keys.js';
+import { DataUtils } from '../utils/data-utils.js';
 
 export class PreloadScene extends Phaser.Scene {
 	constructor() {
@@ -107,6 +108,7 @@ export class PreloadScene extends Phaser.Scene {
 
 		//load json data
 		this.load.json(DATA_ASSET_KEYS.ATTACKS, `assets/data/attacks.json`);
+		this.load.json(DATA_ASSET_KEYS.ANIMATIONS, `assets/data/animations.json`);
 
 		//load custom font with loader plugin
 		this.load.addFile(new WebFontFileLoader(this.load, [KENNY_FUTURE_NARROW_FONT_NAME]));
@@ -130,8 +132,28 @@ export class PreloadScene extends Phaser.Scene {
 
 	// Создание объектов и размещение их на сцене
 	create() {
+		console.log(`[${PreloadScene.name}:create] invoked`);
+		this.#createAnimations();
 		//когда все необходимое загрузится, мы запустим другую сцену, а эта сцена закончится
 		this.scene.start(SCENE_KEYS.WORLD_SCENE);
+	}
+
+	#createAnimations() {
+		const animations = DataUtils.getAnimations(this);
+		animations.forEach((animation) => {
+			const frames = animation.frames
+				? this.anims.generateFrameNumbers(animation.assetKey, { frames: animation.frames })
+				: this.anims.generateFrameNumbers(animation.assetKey);
+			//Создаем анимации
+			this.anims.create({
+				key: animation.key,
+				frames: frames,
+				frameRate: animation.frameRate,
+				repeat: animation.repeat,
+				delay: animation.delay,
+				yoyo: animation.yoyo,
+			});
+		});
 	}
 
 	// Обновление каждый кадр

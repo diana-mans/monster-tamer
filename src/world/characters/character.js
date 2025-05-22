@@ -1,16 +1,28 @@
 import { DIRECTION } from '../../common/direction.js';
 import Phaser from '../../lib/phaser.js';
 import { getTargetPositionFromGameObjectPositionAndDirection } from '../../utils/grid-utils.js';
+import { exhaustiveGuard } from '../../utils/guard.js';
+
+/**
+ * @typedef CharacterIdleFrameConfig
+ * @type {object}
+ * @property {number} LEFT
+ * @property {number} RIGHT
+ * @property {number} UP
+ * @property {number} DOWN
+ * @property {number} NONE
+ */
 
 /**
  * @typedef CharacterConfig
  * @type {object}
  * @property {Phaser.Scene} scene
  * @property {string} assetKey
- * @property {number} [assetFrame=0]
+ * @property {import('../../types/typedef.js').Coordinate} [origin={x:0, y:0}]
  * @property {import('../../types/typedef.js').Coordinate} position
  * @property {import('../../common/direction.js').Direction} direction
  * @property {() => void} [spriteGridMovementFinishedCallback]
+ * @property {CharacterIdleFrameConfig} idleFrameConfig
  */
 
 export class Character {
@@ -28,6 +40,10 @@ export class Character {
 	_previousTargerPosition;
 	/** @type {() => void | undefined} */
 	_spriteGridMovementFinishedCallback;
+	/** @type {CharacterIdleFrameConfig}  */
+	_idleFrameConfig;
+	/** @type {import('../../types/typedef.js').Coordinate} */
+	_origin;
 
 	/**
 	 * @param {CharacterConfig} config
@@ -39,10 +55,12 @@ export class Character {
 		this._targetPosition = { ...config.position };
 		this._previousTargerPosition = { ...config.position };
 		this._spriteGridMovementFinishedCallback = config.spriteGridMovementFinishedCallback;
+		this._idleFrameConfig = config.idleFrameConfig;
+		this._origin = config.origin ? { ...config.origin } : { x: 0, y: 0 };
 
 		this._phaserGameObject = this._scene.add
-			.sprite(config.position.x, config.position.y, config.assetKey, config.assetFrame || 0)
-			.setOrigin(0);
+			.sprite(config.position.x, config.position.y, config.assetKey, this._getIdleFrame())
+			.setOrigin(this._origin.x, this._origin.y);
 	}
 
 	/** @type {boolean} */
@@ -64,6 +82,40 @@ export class Character {
 			return;
 		}
 		this._moveSprite(direction);
+	}
+
+	/**
+	 *
+	 * @param {DOMHighResTimeStamp} time
+	 * @returns {void}
+	 */
+	update(time) {
+		if (this.isMoving) {
+			return;
+		}
+		//ищем статичное положение в спрайте
+		const idleFrame = this._phaserGameObject.anims.currentAnim?.frames[1].frame.name;
+		this._phaserGameObject.anims.stop();
+		if (!idleFrame) {
+			return;
+		}
+
+		//устанавливаем статичный кадр по окончанию анимации
+		switch (this._direction) {
+			case DIRECTION.DOWN:
+			case DIRECTION.LEFT:
+			case DIRECTION.RIGHT:
+			case DIRECTION.UP:
+				this._phaserGameObject.setFrame(idleFrame);
+			case DIRECTION.NONE:
+				break;
+			default:
+				exhaustiveGuard(this._direction);
+		}
+	}
+
+	_getIdleFrame() {
+		return this._idleFrameConfig[this._direction];
 	}
 
 	/**
