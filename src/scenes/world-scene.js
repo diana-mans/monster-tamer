@@ -8,8 +8,8 @@ import { TILE_SIZE } from '../config.js';
 
 /** @type {import('../types/typedef.js').Coordinate} */
 const PLAYER_POSITION = Object.freeze({
-	x: 1 * TILE_SIZE,
-	y: 1 * TILE_SIZE,
+	x: 6 * TILE_SIZE,
+	y: 21 * TILE_SIZE,
 });
 
 export class WorldScene extends Phaser.Scene {
@@ -26,6 +26,11 @@ export class WorldScene extends Phaser.Scene {
 
 	create() {
 		console.log(`[${WorldScene.name}:create] invoked`);
+
+		//Ставим границы для камеры, чтобы за пределы не выходило, когда мы перемещаем игрока
+		this.cameras.main.setBounds(0, 0, 1280, 2176);
+		this.cameras.main.setZoom(0.8);
+
 		this.add.image(0, 0, WORLD_ASSET_KEYS.WORLD_BACKGROUND, 0).setOrigin(0);
 
 		this.#player = new Player({
@@ -33,7 +38,13 @@ export class WorldScene extends Phaser.Scene {
 			position: PLAYER_POSITION,
 			direction: DIRECTION.DOWN,
 		});
+
+		//startFollow - делает объект по центру всегда
+		this.cameras.main.startFollow(this.#player.sprite);
+
 		this.#controls = new Controls(this);
+
+		this.cameras.main.fadeIn(1000, 0, 0, 0);
 	}
 
 	update(time) {

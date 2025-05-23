@@ -63,6 +63,11 @@ export class Character {
 			.setOrigin(this._origin.x, this._origin.y);
 	}
 
+	/** @type {Phaser.GameObjects.Sprite} */
+	get sprite() {
+		return this._phaserGameObject;
+	}
+
 	/** @type {boolean} */
 	get isMoving() {
 		return this._isMoving;
