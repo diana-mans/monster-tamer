@@ -4,7 +4,7 @@ import { WORLD_ASSET_KEYS } from '../assets/asset-keys.js';
 import { Player } from '../world/characters/player.js';
 import { Controls } from '../utils/controls.js';
 import { DIRECTION } from '../common/direction.js';
-import { TILE_SIZE } from '../config.js';
+import { TILE_SIZE, TILED_COLLISION_LAYER_ALPHA } from '../config.js';
 
 /** @type {import('../types/typedef.js').Coordinate} */
 const PLAYER_POSITION = Object.freeze({
@@ -31,16 +31,43 @@ export class WorldScene extends Phaser.Scene {
 		this.cameras.main.setBounds(0, 0, 1280, 2176);
 		this.cameras.main.setZoom(0.8);
 
+		//создаем карту из json файла, чтобы удобно было пользоваться
+		const map = this.make.tilemap({ key: WORLD_ASSET_KEYS.WORLD_MAIN_LEVEL });
+
+		//добавляем изображение, которое будет использоваться для визуализации элементов столкновения
+		const collisionTiles = map.addTilesetImage('collision', WORLD_ASSET_KEYS.WORLD_COLLISION);
+		if (!collisionTiles) {
+			console.log(
+				`[${WorldScene.name}:create] encountered error while creating collision tileset using data from tiled`,
+			);
+			return;
+		}
+
+		//ищем все элементы с именем Collision и создаем из этого слой (авитоматически будет рисоваться)
+		const collisionLayer = map.createLayer('Collision', collisionTiles, 0, 0);
+
+		collisionLayer.setAlpha(TILED_COLLISION_LAYER_ALPHA).setDepth(2);
+
+		if (!collisionLayer) {
+			console.log(
+				`[${WorldScene.name}:create] encountered error while creating collision layer using data from tiled`,
+			);
+			return;
+		}
+
 		this.add.image(0, 0, WORLD_ASSET_KEYS.WORLD_BACKGROUND, 0).setOrigin(0);
 
 		this.#player = new Player({
 			scene: this,
 			position: PLAYER_POSITION,
 			direction: DIRECTION.DOWN,
+			collisionLayer: collisionLayer,
 		});
 
 		//startFollow - делает объект по центру всегда
 		this.cameras.main.startFollow(this.#player.sprite);
+
+		this.add.image(0, 0, WORLD_ASSET_KEYS.WORLD_FOREGROUND, 0).setOrigin(0);
 
 		this.#controls = new Controls(this);
 

@@ -23,6 +23,7 @@ import { exhaustiveGuard } from '../../utils/guard.js';
  * @property {import('../../common/direction.js').Direction} direction
  * @property {() => void} [spriteGridMovementFinishedCallback]
  * @property {CharacterIdleFrameConfig} idleFrameConfig
+ * @property {Phaser.Tilemaps.TilemapLayer} [collisionLayer]
  */
 
 export class Character {
@@ -44,6 +45,8 @@ export class Character {
 	_idleFrameConfig;
 	/** @type {import('../../types/typedef.js').Coordinate} */
 	_origin;
+	/** @type {Phaser.Tilemaps.TilemapLayer | undefined}  */
+	_collisionLayer;
 
 	/**
 	 * @param {CharacterConfig} config
@@ -57,6 +60,7 @@ export class Character {
 		this._spriteGridMovementFinishedCallback = config.spriteGridMovementFinishedCallback;
 		this._idleFrameConfig = config.idleFrameConfig;
 		this._origin = config.origin ? { ...config.origin } : { x: 0, y: 0 };
+		this._collisionLayer = config.collisionLayer;
 
 		this._phaserGameObject = this._scene.add
 			.sprite(config.position.x, config.position.y, config.assetKey, this._getIdleFrame())
@@ -137,8 +141,12 @@ export class Character {
 	_isBlockingTile() {
 		if (this._direction === DIRECTION.NONE) return;
 
-		//TODO add in collision logic
-		return false;
+		const targetPosition = { ...this._targetPosition };
+		const updatedPosition = getTargetPositionFromGameObjectPositionAndDirection(
+			targetPosition,
+			this._direction,
+		);
+		return this.#doesPositionCollideWithCollisionLayer(updatedPosition);
 	}
 
 	#handleSpriteMovement() {
@@ -172,5 +180,20 @@ export class Character {
 				if (this._spriteGridMovementFinishedCallback) this._spriteGridMovementFinishedCallback();
 			},
 		});
+	}
+	/**
+	 *
+	 * @param {import('../../types/typedef.js').Coordinate} position
+	 * @returns {boolean}
+	 */
+	#doesPositionCollideWithCollisionLayer(position) {
+		if (!this._collisionLayer) {
+			return false;
+		}
+		const { x, y } = position;
+		//возращаем плитку с позицией как у игрока
+		const tile = this._collisionLayer.getTileAtWorldXY(x, y, true);
+		//индекс либо есть, либо -1, если плитки нет
+		return tile.index !== -1;
 	}
 }
