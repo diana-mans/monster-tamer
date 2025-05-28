@@ -17,11 +17,19 @@ export class WorldScene extends Phaser.Scene {
 	#player;
 	/** @type {Controls} */
 	#controls;
+	/** @type {Phaser.Tilemaps.TilemapLayer} */
+	#encounterLayer;
+	/** @type {boolean} */
+	#wildMonsterEncountered;
 
 	constructor() {
 		super({
 			key: SCENE_KEYS.WORLD_SCENE,
 		});
+	}
+
+	init() {
+		this.#wildMonsterEncountered = false;
 	}
 
 	create() {
@@ -45,15 +53,32 @@ export class WorldScene extends Phaser.Scene {
 
 		//ищем все элементы с именем Collision и создаем из этого слой (авитоматически будет рисоваться)
 		const collisionLayer = map.createLayer('Collision', collisionTiles, 0, 0);
-
-		collisionLayer.setAlpha(TILED_COLLISION_LAYER_ALPHA).setDepth(2);
-
 		if (!collisionLayer) {
 			console.log(
 				`[${WorldScene.name}:create] encountered error while creating collision layer using data from tiled`,
 			);
 			return;
 		}
+		collisionLayer.setAlpha(TILED_COLLISION_LAYER_ALPHA).setDepth(2);
+
+		//добавляем изображение, которое будет использоваться для визуализации элементов зон встречи с монстрами
+		const encounterTiles = map.addTilesetImage('encounter', WORLD_ASSET_KEYS.WORLD_ENCOUNTER_ZONE);
+		if (!encounterTiles) {
+			console.log(
+				`[${WorldScene.name}:create] encountered error while creating encounter tileset using data from tiled`,
+			);
+			return;
+		}
+
+		//ищем все элементы с именем Encounter и создаем из этого слой (авитоматически будет рисоваться)
+		this.#encounterLayer = map.createLayer('Encounter', encounterTiles, 0, 0);
+		if (!this.#encounterLayer) {
+			console.log(
+				`[${WorldScene.name}:create] encountered error while creating encounter layer using data from tiled`,
+			);
+			return;
+		}
+		this.#encounterLayer.setAlpha(TILED_COLLISION_LAYER_ALPHA).setDepth(2);
 
 		this.add.image(0, 0, WORLD_ASSET_KEYS.WORLD_BACKGROUND, 0).setOrigin(0);
 
@@ -62,6 +87,9 @@ export class WorldScene extends Phaser.Scene {
 			position: PLAYER_POSITION,
 			direction: DIRECTION.DOWN,
 			collisionLayer: collisionLayer,
+			spriteGridMovementFinishedCallback: () => {
+				this.#handlePlayerMovementUpdate();
+			},
 		});
 
 		//startFollow - делает объект по центру всегда
@@ -75,10 +103,37 @@ export class WorldScene extends Phaser.Scene {
 	}
 
 	update(time) {
-		const selectedDirection = this.#controls.getDirectionKeyJustPressed();
+		if (this.#wildMonsterEncountered) {
+			this.#player.update(time);
+			return;
+		}
+		const selectedDirection = this.#controls.getDirectionKeyPressedDown();
 		if (selectedDirection !== DIRECTION.NONE) {
 			this.#player.moveCharacter(selectedDirection);
 		}
 		this.#player.update(time);
+	}
+	#handlePlayerMovementUpdate() {
+		if (!this.#encounterLayer) {
+			return;
+		}
+
+		const isInEncounterZone =
+			this.#encounterLayer.getTileAtWorldXY(this.#player.sprite.x, this.#player.sprite.y, true)
+				.index !== -1;
+		if (!isInEncounterZone) {
+			return;
+		}
+		console.log(`[${WorldScene.name}:handlePlayerMovementUpdate] player is in an encounter zone`);
+		this.#wildMonsterEncountered = Math.random() < 0.5;
+		if (this.#wildMonsterEncountered) {
+			console.log(
+				`[${WorldScene.name}:handlePlayerMovementUpdate] player encountered a wild monster`,
+			);
+			this.cameras.main.fadeOut(2000);
+			this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
+				this.scene.start(SCENE_KEYS.BATTLE_SCENE);
+			});
+		}
 	}
 }
