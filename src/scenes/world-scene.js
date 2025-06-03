@@ -6,6 +6,16 @@ import { Controls } from '../utils/controls.js';
 import { DIRECTION } from '../common/direction.js';
 import { TILE_SIZE, TILED_COLLISION_LAYER_ALPHA } from '../config.js';
 import { DATA_MANAGER_STORE_KEYS, dataManager } from '../utils/data-manager.js';
+import { getTargetPositionFromGameObjectPositionAndDirection } from '../utils/grid-utils.js';
+import { CANNOT_READ_SIGN_TEXT, SAMPLE_TEXT } from '../utils/text-utils.js';
+
+/**
+ * @typedef TiledObjectProperty
+ * @type {object}
+ * @property {string} name
+ * @property {string} type
+ * @property {any} value
+ */
 
 export class WorldScene extends Phaser.Scene {
 	/** @type {Player} */
@@ -16,6 +26,8 @@ export class WorldScene extends Phaser.Scene {
 	#encounterLayer;
 	/** @type {boolean} */
 	#wildMonsterEncountered;
+	/** @type {Phaser.Tilemaps.ObjectLayer} */
+	#signLayer;
 
 	constructor() {
 		super({
@@ -55,6 +67,15 @@ export class WorldScene extends Phaser.Scene {
 			return;
 		}
 		collisionLayer.setAlpha(TILED_COLLISION_LAYER_ALPHA).setDepth(2);
+
+		//создаем интерактивные слои объектов (sign - указатель)
+		this.#signLayer = map.getObjectLayer('Sign');
+		if (!this.#signLayer) {
+			console.log(
+				`[${WorldScene.name}:create] encountered error while creating sign layer using data from tiled`,
+			);
+			return;
+		}
 
 		//добавляем изображение, которое будет использоваться для визуализации элементов зон встречи с монстрами
 		const encounterTiles = map.addTilesetImage('encounter', WORLD_ASSET_KEYS.WORLD_ENCOUNTER_ZONE);
@@ -106,6 +127,10 @@ export class WorldScene extends Phaser.Scene {
 		if (selectedDirection !== DIRECTION.NONE) {
 			this.#player.moveCharacter(selectedDirection);
 		}
+
+		if (this.#controls.wasSpaceKeyPressed() && !this.#player.isMoving) {
+			this.#handlePlayerInteraction();
+		}
 		this.#player.update(time);
 	}
 	#handlePlayerMovementUpdate() {
@@ -134,6 +159,39 @@ export class WorldScene extends Phaser.Scene {
 			this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
 				this.scene.start(SCENE_KEYS.BATTLE_SCENE);
 			});
+		}
+	}
+
+	#handlePlayerInteraction() {
+		console.log('start of interaction check');
+
+		const { x, y } = this.#player.sprite;
+		const targetPosition = getTargetPositionFromGameObjectPositionAndDirection(
+			{ x, y },
+			this.#player.direction,
+		);
+		const nearBySign = this.#signLayer.objects.find((object) => {
+			if (!object.x || !object.y) {
+				return;
+			}
+
+			//указатели центрированы по нижнему краю, поэтому вычитаем квадрат
+			return object.x === targetPosition.x && object.y - TILE_SIZE === targetPosition.y;
+		});
+
+		if (nearBySign) {
+			/** @type {TiledObjectProperty[]} */
+			const props = nearBySign.properties;
+			/** @type {string} */
+			const msg = props.find((prop) => prop.name === 'message')?.value;
+
+			const usePlaceholderText = this.#player.direction !== DIRECTION.UP;
+			let textToShow = CANNOT_READ_SIGN_TEXT;
+			if (!usePlaceholderText) {
+				textToShow = msg || SAMPLE_TEXT;
+			}
+			console.log(textToShow);
+			return;
 		}
 	}
 }
