@@ -8,6 +8,7 @@ import { TILE_SIZE, TILED_COLLISION_LAYER_ALPHA } from '../config.js';
 import { DATA_MANAGER_STORE_KEYS, dataManager } from '../utils/data-manager.js';
 import { getTargetPositionFromGameObjectPositionAndDirection } from '../utils/grid-utils.js';
 import { CANNOT_READ_SIGN_TEXT, SAMPLE_TEXT } from '../utils/text-utils.js';
+import { DialogUi } from '../world/dialog-ui.js';
 
 /**
  * @typedef TiledObjectProperty
@@ -28,6 +29,8 @@ export class WorldScene extends Phaser.Scene {
 	#wildMonsterEncountered;
 	/** @type {Phaser.Tilemaps.ObjectLayer} */
 	#signLayer;
+	/** @type {DialogUi} */
+	#dialogUi;
 
 	constructor() {
 		super({
@@ -115,6 +118,8 @@ export class WorldScene extends Phaser.Scene {
 
 		this.#controls = new Controls(this);
 
+		this.#dialogUi = new DialogUi(this, 1280);
+
 		this.cameras.main.fadeIn(1000, 0, 0, 0);
 	}
 
@@ -124,7 +129,7 @@ export class WorldScene extends Phaser.Scene {
 			return;
 		}
 		const selectedDirection = this.#controls.getDirectionKeyPressedDown();
-		if (selectedDirection !== DIRECTION.NONE) {
+		if (selectedDirection !== DIRECTION.NONE && !this.#isPlayerInputLocked()) {
 			this.#player.moveCharacter(selectedDirection);
 		}
 
@@ -163,6 +168,15 @@ export class WorldScene extends Phaser.Scene {
 	}
 
 	#handlePlayerInteraction() {
+		if (this.#dialogUi.isAnimationPlaying) return;
+		if (this.#dialogUi.isVisible && !this.#dialogUi.moreMessagesToShow) {
+			this.#dialogUi.hideDialogModal();
+			return;
+		}
+		if (this.#dialogUi.isVisible && this.#dialogUi.moreMessagesToShow) {
+			this.#dialogUi.showNextMessage();
+			return;
+		}
 		console.log('start of interaction check');
 
 		const { x, y } = this.#player.sprite;
@@ -182,16 +196,20 @@ export class WorldScene extends Phaser.Scene {
 		if (nearBySign) {
 			/** @type {TiledObjectProperty[]} */
 			const props = nearBySign.properties;
-			/** @type {string} */
-			const msg = props.find((prop) => prop.name === 'message')?.value;
+			/** @type {string[]} */
+			const msgs = props.filter((prop) => prop.name === 'message').map((msg) => msg.value);
 
 			const usePlaceholderText = this.#player.direction !== DIRECTION.UP;
-			let textToShow = CANNOT_READ_SIGN_TEXT;
+			let textToShow = [CANNOT_READ_SIGN_TEXT];
 			if (!usePlaceholderText) {
-				textToShow = msg || SAMPLE_TEXT;
+				textToShow = msgs || [SAMPLE_TEXT];
 			}
-			console.log(textToShow);
+			this.#dialogUi.showDialogModal(textToShow);
 			return;
 		}
+	}
+
+	#isPlayerInputLocked() {
+		return this.#dialogUi.isVisible;
 	}
 }
