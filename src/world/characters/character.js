@@ -24,6 +24,7 @@ import { exhaustiveGuard } from '../../utils/guard.js';
  * @property {() => void} [spriteGridMovementFinishedCallback]
  * @property {CharacterIdleFrameConfig} idleFrameConfig
  * @property {Phaser.Tilemaps.TilemapLayer} [collisionLayer]
+ * @property {Character[]} [otherCharactersToCheckForCollisionsWith=[]]
  */
 
 export class Character {
@@ -47,6 +48,8 @@ export class Character {
 	_origin;
 	/** @type {Phaser.Tilemaps.TilemapLayer | undefined}  */
 	_collisionLayer;
+	/** @type {Character[]} */
+	_otherCharactersToCheckForCollisionsWith;
 
 	/**
 	 * @param {CharacterConfig} config
@@ -61,6 +64,8 @@ export class Character {
 		this._idleFrameConfig = config.idleFrameConfig;
 		this._origin = config.origin ? { ...config.origin } : { x: 0, y: 0 };
 		this._collisionLayer = config.collisionLayer;
+		this._otherCharactersToCheckForCollisionsWith =
+			config.otherCharactersToCheckForCollisionsWith || [];
 
 		this._phaserGameObject = this._scene.add
 			.sprite(config.position.x, config.position.y, config.assetKey, this._getIdleFrame())
@@ -91,6 +96,14 @@ export class Character {
 			return;
 		}
 		this._moveSprite(direction);
+	}
+
+	/**
+	 * @param {Character} character
+	 * @returns {void}
+	 */
+	addCharacterToCheckForCollisionWith(character) {
+		this._otherCharactersToCheckForCollisionsWith.push(character);
 	}
 
 	/**
@@ -146,7 +159,10 @@ export class Character {
 			targetPosition,
 			this._direction,
 		);
-		return this.#doesPositionCollideWithCollisionLayer(updatedPosition);
+		return (
+			this.#doesPositionCollideWithCollisionLayer(updatedPosition) ||
+			this.#doesPositionCollideWithOtherCharacters(updatedPosition)
+		);
 	}
 
 	#handleSpriteMovement() {
@@ -195,5 +211,25 @@ export class Character {
 		const tile = this._collisionLayer.getTileAtWorldXY(x, y, true);
 		//индекс либо есть, либо -1, если плитки нет
 		return tile.index !== -1;
+	}
+
+	/**
+	 *
+	 * @param {import('../../types/typedef.js').Coordinate} position
+	 * @returns {boolean}
+	 */
+	#doesPositionCollideWithOtherCharacters(position) {
+		if (this._otherCharactersToCheckForCollisionsWith.length === 0) return false;
+
+		const { x, y } = position;
+		const collideWithACharacter = this._otherCharactersToCheckForCollisionsWith.some(
+			(character) => {
+				return (
+					(character._targetPosition.x === x && character._targetPosition.y === y) ||
+					(character._previousTargerPosition.x === x && character._previousTargerPosition.y === y)
+				);
+			},
+		);
+		return collideWithACharacter;
 	}
 }
