@@ -50,6 +50,8 @@ export class WorldScene extends Phaser.Scene {
 	#dialogUi;
 	/** @type {NPC[]} */
 	#npcs;
+	/** @type {NPC | undefined} */
+	#npcPlayerIsInteractionWith;
 
 	constructor() {
 		super({
@@ -59,6 +61,7 @@ export class WorldScene extends Phaser.Scene {
 
 	init() {
 		this.#wildMonsterEncountered = false;
+		this.#npcPlayerIsInteractionWith = undefined;
 	}
 
 	create() {
@@ -207,6 +210,11 @@ export class WorldScene extends Phaser.Scene {
 		}
 		if (this.#dialogUi.isVisible && this.#dialogUi.moreMessagesToShow) {
 			this.#dialogUi.showNextMessage();
+			if (this.#npcPlayerIsInteractionWith) {
+				this.#npcPlayerIsInteractionWith.isTalkingToPlayer = false;
+				this.#npcPlayerIsInteractionWith = undefined;
+			}
+
 			return;
 		}
 		console.log('start of interaction check');
@@ -241,6 +249,16 @@ export class WorldScene extends Phaser.Scene {
 			this.#dialogUi.showDialogModal(textToShow);
 			return;
 		}
+
+		const nearByNpc = this.#npcs.find((npc) => {
+			return npc.sprite.x === targetPosition.x && npc.sprite.y === targetPosition.y;
+		});
+		if (nearByNpc) {
+			nearByNpc.facePlayer(this.#player.direction);
+			nearByNpc.isTalkingToPlayer = true;
+			this.#npcPlayerIsInteractionWith = nearByNpc;
+			this.#dialogUi.showDialogModal(nearByNpc.messages);
+		}
 	}
 
 	#isPlayerInputLocked() {
@@ -269,14 +287,24 @@ export class WorldScene extends Phaser.Scene {
 			});
 			if (!npcObject || npcObject.x === undefined || npcObject.y === undefined) return;
 
+			/** @type {string} */
 			const npcFrame =
 				npcObject.properties.find((property) => property.name === TILED_NPC_PROPERTY.FRAME)
 					?.value || '0';
+
+			/** @type {string} */
+			const npcMessagesString =
+				npcObject.properties.find((property) => property.name === TILED_NPC_PROPERTY.MESSAGES)
+					?.value || '';
+
+			const npcMessages = npcMessagesString.split('::');
+
 			const npc = new NPC({
 				scene: this,
 				position: { x: npcObject.x, y: npcObject.y - TILE_SIZE },
 				direction: DIRECTION.DOWN,
 				frame: parseInt(npcFrame, 10),
+				messages: npcMessages,
 			});
 			this.#npcs.push(npc);
 		});

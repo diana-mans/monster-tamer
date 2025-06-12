@@ -4,11 +4,22 @@ import { exhaustiveGuard } from '../../utils/guard.js';
 import { Character } from './character.js';
 
 /**
- * @typedef {Omit<import('./character.js').CharacterConfig, 'assetKey' | 'idleFrameConfig'> & {frame: number}} NPCConfig
+ * @typedef NPCConfigProps
+ * @type {object}
+ * @property {number} frame
+ * @property {string[]} messages
+ */
+
+/**
+ * @typedef {Omit<import('./character.js').CharacterConfig, 'assetKey' | 'idleFrameConfig'> & NPCConfigProps} NPCConfig
 
  */
 
 export class NPC extends Character {
+	/** @type {string[]} */
+	#messages;
+	/** @type {boolean} */
+	#talkingToPlayer;
 	/**
 	 * @param {NPCConfig} config
 	 */
@@ -25,7 +36,26 @@ export class NPC extends Character {
 			},
 			origin: { x: 0, y: 0 },
 		});
+		this.#messages = config.messages;
+		this.#talkingToPlayer = false;
 		this._phaserGameObject.setScale(4);
+	}
+
+	/** @type {string[]} */
+	get messages() {
+		return [...this.#messages];
+	}
+
+	/** @type {boolean} */
+	get isTalkingToPlayer() {
+		return this.#talkingToPlayer;
+	}
+
+	/**
+	 * @param {boolean} val
+	 */
+	set isTalkingToPlayer(val) {
+		this.#talkingToPlayer = val;
 	}
 
 	/**
@@ -45,7 +75,7 @@ export class NPC extends Character {
 				this._phaserGameObject.setFrame(this._idleFrameConfig.RIGHT).setFlipX(false);
 				break;
 			case DIRECTION.RIGHT:
-				this._phaserGameObject.setFrame(this._idleFrameConfig.LEFT).setFlipX(false);
+				this._phaserGameObject.setFrame(this._idleFrameConfig.LEFT).setFlipX(true);
 				break;
 			case DIRECTION.NONE:
 				break;
