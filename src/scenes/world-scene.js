@@ -287,6 +287,15 @@ export class WorldScene extends Phaser.Scene {
 			});
 			if (!npcObject || npcObject.x === undefined || npcObject.y === undefined) return;
 
+			//get the path objects for this npc
+			const pathObjects = layer.objects.filter((obj) => obj.type === CUSTOM_TILED_TYPES.NPC_PATH);
+			const npcPath = { 0: { x: npcObject.x, y: npcObject.y - TILE_SIZE } };
+			pathObjects.forEach((obj) => {
+				if (obj.x === undefined || obj.y === undefined) return;
+				npcPath[parseInt(obj.name, 10)] = { x: obj.x, y: obj.y - TILE_SIZE };
+			});
+			console.log(npcPath);
+
 			/** @type {string} */
 			const npcFrame =
 				npcObject.properties.find((property) => property.name === TILED_NPC_PROPERTY.FRAME)
@@ -299,12 +308,20 @@ export class WorldScene extends Phaser.Scene {
 
 			const npcMessages = npcMessagesString.split('::');
 
+			/** @type {import('../world/characters/npc.js').NpcMovementPattern} */
+			const npcMovement =
+				npcObject.properties.find(
+					(property) => property.name === TILED_NPC_PROPERTY.MOVEMENT_PATTERN,
+				)?.value || 'IDLE';
+
 			const npc = new NPC({
 				scene: this,
 				position: { x: npcObject.x, y: npcObject.y - TILE_SIZE },
 				direction: DIRECTION.DOWN,
 				frame: parseInt(npcFrame, 10),
 				messages: npcMessages,
+				npcPath,
+				movementPattern: npcMovement,
 			});
 			this.#npcs.push(npc);
 		});
