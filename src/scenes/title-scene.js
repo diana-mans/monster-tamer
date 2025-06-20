@@ -4,6 +4,7 @@ import { DIRECTION } from '../common/direction.js';
 import Phaser from '../lib/phaser.js';
 import { Controls } from '../utils/controls.js';
 import { exhaustiveGuard } from '../utils/guard.js';
+import { NineSlice } from '../utils/nine-slice.js';
 import { SCENE_KEYS } from './scene-keys.js';
 
 /** @type {Phaser.Types.GameObjects.Text.TextStyle} */
@@ -38,13 +39,23 @@ export class TitleScene extends Phaser.Scene {
 	#selectedMenuOption;
 	/** @type {boolean} */
 	#isContinueButtonEnabled;
+	/** @type {NineSlice} */
+	#nineSliceMenu;
 
 	constructor() {
 		super({
 			key: SCENE_KEYS.TITLE_SCENE,
 		});
 	}
+	init() {
+		console.log(`[${TitleScene.name}:init] invoked`);
 
+		this.#nineSliceMenu = new NineSlice({
+			assetKey: UI_ASSET_KEYS.MENU_BACKGROUND,
+			cornerCutSize: 32,
+			textureManager: this.sys.textures,
+		});
+	}
 	create() {
 		console.log(`[${TitleScene.name}:create] invoked`);
 
@@ -64,12 +75,8 @@ export class TitleScene extends Phaser.Scene {
 
 		//create menu
 		const menuBgWidth = 500;
-		//TODO: replace width a nineslice image
-		const menuBg = this.add
-			.image(125, 0, UI_ASSET_KEYS.MENU_BACKGROUND)
-			.setOrigin(0)
-			.setScale(2.4, 2);
-		const menuBgContainer = this.add.container(0, 0, [menuBg]);
+
+		const menuBgContainer = this.#nineSliceMenu.createNineSliceContainer(this, menuBgWidth, 200);
 		const newGameText = this.add
 			.text(menuBgWidth / 2, 40, 'New Game', MENU_TEXT_STYLE)
 			.setOrigin(0.5);
