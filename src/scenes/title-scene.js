@@ -51,7 +51,7 @@ export class TitleScene extends Phaser.Scene {
 		console.log(`[${TitleScene.name}:init] invoked`);
 
 		this.#nineSliceMenu = new NineSlice({
-			assetKey: UI_ASSET_KEYS.MENU_BACKGROUND,
+			assetKeys: [UI_ASSET_KEYS.MENU_BACKGROUND],
 			cornerCutSize: 32,
 			textureManager: this.sys.textures,
 		});
@@ -76,7 +76,12 @@ export class TitleScene extends Phaser.Scene {
 		//create menu
 		const menuBgWidth = 500;
 
-		const menuBgContainer = this.#nineSliceMenu.createNineSliceContainer(this, menuBgWidth, 200);
+		const menuBgContainer = this.#nineSliceMenu.createNineSliceContainer(
+			this,
+			menuBgWidth,
+			200,
+			UI_ASSET_KEYS.MENU_BACKGROUND,
+		);
 		const newGameText = this.add
 			.text(menuBgWidth / 2, 40, 'New Game', MENU_TEXT_STYLE)
 			.setOrigin(0.5);
@@ -126,7 +131,7 @@ export class TitleScene extends Phaser.Scene {
 				return;
 			}
 			if (this.#selectedMenuOption === MAIN_MENU_OPTIONS.OPTIONS) {
-				this.scene.start(SCENE_KEYS.WORLD_SCENE);
+				this.scene.start(SCENE_KEYS.OPTIONS_SCENE);
 				return;
 			}
 		});

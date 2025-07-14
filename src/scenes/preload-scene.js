@@ -15,6 +15,7 @@ import { KENNY_FUTURE_NARROW_FONT_NAME } from '../assets/font-keys.js';
 import { WebFontFileLoader } from '../assets/web-font-file-loader.js';
 import { SCENE_KEYS } from './scene-keys.js';
 import { DataUtils } from '../utils/data-utils.js';
+import { dataManager } from '../utils/data-manager.js';
 
 export class PreloadScene extends Phaser.Scene {
 	constructor() {
@@ -106,9 +107,18 @@ export class PreloadScene extends Phaser.Scene {
 
 		//ui assets
 		this.load.image(UI_ASSET_KEYS.CURSOR, `${monsterTamerAssetPath}/ui/cursor.png`);
+		this.load.image(UI_ASSET_KEYS.CURSOR_WHITE, `${monsterTamerAssetPath}/ui/cursor_white.png`);
 		this.load.image(
 			UI_ASSET_KEYS.MENU_BACKGROUND,
 			`${kenneysAssetPath}/ui-space-expansion/glassPanel.png`,
+		);
+		this.load.image(
+			UI_ASSET_KEYS.MENU_BACKGROUND_GREEN,
+			`${kenneysAssetPath}/ui-space-expansion/glassPanel_green.png`,
+		);
+		this.load.image(
+			UI_ASSET_KEYS.MENU_BACKGROUND_PURPLE,
+			`${kenneysAssetPath}/ui-space-expansion/glassPanel_purple.png`,
 		);
 
 		//load json data
@@ -160,7 +170,7 @@ export class PreloadScene extends Phaser.Scene {
 	create() {
 		console.log(`[${PreloadScene.name}:create] invoked`);
 		this.#createAnimations();
-		//когда все необходимое загрузится, мы запустим другую сцену, а эта сцена закончится
+		dataManager.loadData();
 		this.scene.start(SCENE_KEYS.TITLE_SCENE);
 	}
 
