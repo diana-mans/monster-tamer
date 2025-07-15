@@ -1,6 +1,6 @@
 import { DIRECTION } from '../common/direction.js';
 import { OPTION_MENU_OPTIONS, OPTION_MENU_OPTIONS_DATA } from '../common/options.js';
-import { TILE_SIZE } from '../config.js';
+import { TEXT_SPEEDS, TILE_SIZE } from '../config.js';
 import Phaser from '../lib/phaser.js';
 
 const LOCAL_STORAGE_KEY = 'MONSTER_TAMER_DATA';
@@ -97,6 +97,11 @@ class DataManager extends Phaser.Events.EventEmitter {
 
 		const dataToSave = this.#dataManagerDataToGlobalStateObject();
 		localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(dataToSave));
+	}
+
+	getAnimatedTextSpeed() {
+		const chosenTextSpeed = this.#store.get(DATA_MANAGER_STORE_KEYS.OPTIONS_TEXT_SPEED) || 0;
+		return TEXT_SPEEDS[chosenTextSpeed];
 	}
 
 	/**

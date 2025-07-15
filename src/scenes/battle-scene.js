@@ -6,9 +6,9 @@ import { EnemyBattleMonster } from '../battle/monsters/enemy-battle-monster.js';
 import { PlayerBattleMonster } from '../battle/monsters/player-battle-monster.js';
 import { BattleMenu } from '../battle/ui/menu/battle-menu.js';
 import { DIRECTION } from '../common/direction.js';
-import { SKIP_BATTLE_ANIMATIONS } from '../config.js';
 import Phaser from '../lib/phaser.js';
 import { Controls } from '../utils/controls.js';
+import { DATA_MANAGER_STORE_KEYS, dataManager } from '../utils/data-manager.js';
 import { createSceneTransition } from '../utils/scene-transition.js';
 import { StateMachine } from '../utils/state-machine.js';
 import { SCENE_KEYS } from './scene-keys.js';
@@ -47,6 +47,9 @@ export class BattleScene extends Phaser.Scene {
 	/** @type {AttackManager} */
 	#attackManager;
 
+	/** @type {boolean} */
+	#skipAnimations;
+
 	constructor() {
 		super({
 			key: SCENE_KEYS.BATTLE_SCENE,
@@ -55,11 +58,17 @@ export class BattleScene extends Phaser.Scene {
 
 	init() {
 		this.#activePlayerAttackIndex = -1;
+
+		this.#skipAnimations =
+			dataManager.store.get(DATA_MANAGER_STORE_KEYS.OPTIONS_BATTLE_SCENE_ANIMATIONS) === 0
+				? false
+				: true;
 	}
 
 	// Создание объектов и размещение их на сцене
 	create() {
 		console.log(`[${BattleScene.name}:create] invoked`);
+
 		//create main bg
 		const background = new Background(this);
 		background.showForest();
@@ -76,7 +85,7 @@ export class BattleScene extends Phaser.Scene {
 				attackIds: [1],
 				currentLevel: 5,
 			},
-			skipBattleAnimations: SKIP_BATTLE_ANIMATIONS,
+			skipBattleAnimations: this.#skipAnimations,
 		});
 		this.#activePlayerMonster = new PlayerBattleMonster({
 			scene: this,
@@ -90,15 +99,15 @@ export class BattleScene extends Phaser.Scene {
 				attackIds: [2],
 				currentLevel: 5,
 			},
-			skipBattleAnimations: SKIP_BATTLE_ANIMATIONS,
+			skipBattleAnimations: this.#skipAnimations,
 		});
 
 		//рендерим осн и доп инф-ые панели
-		this.#battleMenu = new BattleMenu(this, this.#activePlayerMonster);
+		this.#battleMenu = new BattleMenu(this, this.#activePlayerMonster, this.#skipAnimations);
 
 		this.#createBattleStateMachine();
 
-		this.#attackManager = new AttackManager(this, SKIP_BATTLE_ANIMATIONS);
+		this.#attackManager = new AttackManager(this, this.#skipAnimations);
 
 		this.#controls = new Controls(this);
 	}
@@ -174,8 +183,6 @@ export class BattleScene extends Phaser.Scene {
 					);
 				});
 			},
-
-			SKIP_BATTLE_ANIMATIONS,
 		);
 	}
 
@@ -201,7 +208,6 @@ export class BattleScene extends Phaser.Scene {
 					);
 				});
 			},
-			SKIP_BATTLE_ANIMATIONS,
 		);
 	}
 	#postBattleSequenceCheck() {
@@ -212,7 +218,6 @@ export class BattleScene extends Phaser.Scene {
 					() => {
 						this.#battleStateMachine.setState(BATTLE_STATES.FINISHED);
 					},
-					SKIP_BATTLE_ANIMATIONS,
 				);
 			});
 			return;
@@ -227,7 +232,6 @@ export class BattleScene extends Phaser.Scene {
 					() => {
 						this.#battleStateMachine.setState(BATTLE_STATES.FINISHED);
 					},
-					SKIP_BATTLE_ANIMATIONS,
 				);
 			});
 			return;
@@ -254,7 +258,7 @@ export class BattleScene extends Phaser.Scene {
 					callback: () => {
 						this.#battleStateMachine.setState(BATTLE_STATES.PRE_BATTLE_INFO);
 					},
-					skipSceneTransition: SKIP_BATTLE_ANIMATIONS,
+					skipSceneTransition: this.#skipAnimations,
 				});
 			},
 		});
@@ -270,7 +274,6 @@ export class BattleScene extends Phaser.Scene {
 							//типа ждем окончания анимации текста
 							this.#battleStateMachine.setState(BATTLE_STATES.BRING_OUT_MONSTER);
 						},
-						SKIP_BATTLE_ANIMATIONS,
 					);
 				});
 			},
@@ -289,7 +292,6 @@ export class BattleScene extends Phaser.Scene {
 								this.#battleStateMachine.setState(BATTLE_STATES.PLAYER_INPUT);
 							});
 						},
-						SKIP_BATTLE_ANIMATIONS,
 					);
 				});
 			},
@@ -335,13 +337,9 @@ export class BattleScene extends Phaser.Scene {
 		this.#battleStateMachine.addState({
 			name: BATTLE_STATES.FLEE_ATTEMPT,
 			onEnter: () => {
-				this.#battleMenu.updateInfoPanelMessagesAndWaitForInput(
-					[`You got away safely!`],
-					() => {
-						this.#battleStateMachine.setState(BATTLE_STATES.FINISHED);
-					},
-					SKIP_BATTLE_ANIMATIONS,
-				);
+				this.#battleMenu.updateInfoPanelMessagesAndWaitForInput([`You got away safely!`], () => {
+					this.#battleStateMachine.setState(BATTLE_STATES.FINISHED);
+				});
 			},
 		});
 

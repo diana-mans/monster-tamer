@@ -1,7 +1,7 @@
 import { MONSTER_ASSET_KEYS, UI_ASSET_KEYS } from '../../../assets/asset-keys.js';
 import { DIRECTION } from '../../../common/direction.js';
-import { SKIP_BATTLE_ANIMATIONS } from '../../../config.js';
 import Phaser from '../../../lib/phaser.js';
+import { dataManager } from '../../../utils/data-manager.js';
 import { exhaustiveGuard } from '../../../utils/guard.js';
 import { animateText } from '../../../utils/text-utils.js';
 import { PlayerBattleMonster } from '../../monsters/player-battle-monster.js';
@@ -63,16 +63,16 @@ export class BattleMenu {
 	#userInputCursorPhaserTween;
 
 	/** @type {boolean} */
-	#queuedMessagesSkipAnimation;
-
-	/** @type {boolean} */
 	#queuedMessageAnimationPlaying;
+	/** @type {boolean} */
+	#skipAnimations;
 
 	/**
 	 * @param {Phaser.Scene} scene the Phaser 3 Scene the battle menu will be added to
 	 * @param {PlayerBattleMonster} activePlayerMonster
+	 * @param {boolean} skipAnimations
 	 */
-	constructor(scene, activePlayerMonster) {
+	constructor(scene, activePlayerMonster, skipAnimations) {
 		this.#scene = scene;
 		this.#activePlayerMonster = activePlayerMonster;
 		this.#activeBattleMenu = ACTIVE_BATTE_MENU.BATTLE_MAIN;
@@ -82,8 +82,8 @@ export class BattleMenu {
 		this.#queuedInfoPanelMessages = [];
 		this.#waitingForPlayerInput = false;
 		this.#selectedAttackIndex = undefined;
-		this.#queuedMessagesSkipAnimation = false;
 		this.#queuedMessageAnimationPlaying = false;
+		this.#skipAnimations = skipAnimations;
 		this.#createMainInfoPane();
 		this.#createMainBattleMenu();
 		this.#createMonsterAttackSubMenu();
@@ -191,12 +191,11 @@ export class BattleMenu {
 	/**
 	 * @param {string} message
 	 * @param {() => void} [callback]
-	 * @param {boolean} [skipAnimation=false]
 	 */
-	updateInfoPanelMessageNoInputRequired(message, callback, skipAnimation = false) {
+	updateInfoPanelMessageNoInputRequired(message, callback) {
 		this.#battleTextGameObjectLine1.setText('').setAlpha(1);
 
-		if (skipAnimation) {
+		if (this.#skipAnimations) {
 			this.#battleTextGameObjectLine1.setText(message);
 			this.#waitingForPlayerInput = false;
 			if (callback) {
@@ -206,7 +205,7 @@ export class BattleMenu {
 			return;
 		}
 		animateText(this.#scene, this.#battleTextGameObjectLine1, message, {
-			delay: 50,
+			delay: dataManager.getAnimatedTextSpeed(),
 			callback: () => {
 				this.#waitingForPlayerInput = false;
 				if (callback) {
@@ -220,12 +219,11 @@ export class BattleMenu {
 	/**
 	 * @param {string[]} messages
 	 * @param {() => void} [callback]
-	 * @param {boolean} [skipAnimation=false]
+
 	 */
-	updateInfoPanelMessagesAndWaitForInput(messages, callback, skipAnimation = false) {
+	updateInfoPanelMessagesAndWaitForInput(messages, callback) {
 		this.#queuedInfoPanelMessages = messages;
 		this.#queuedInfoPanelCallback = callback;
-		this.#queuedMessagesSkipAnimation = skipAnimation;
 
 		this.#updateInfoPanelWithMessage();
 	}
@@ -250,7 +248,7 @@ export class BattleMenu {
 		//Берем первое сообщение и сразу удаляем его из очереди
 		const messageToDisplay = this.#queuedInfoPanelMessages.shift();
 		//если стоит скип, то сразу показываем сообщение пользователю, дальше не идем
-		if (this.#queuedMessagesSkipAnimation) {
+		if (this.#skipAnimations) {
 			this.#battleTextGameObjectLine1.setText(messageToDisplay);
 			this.#queuedMessageAnimationPlaying = false;
 			this.#waitingForPlayerInput = true;
@@ -261,7 +259,7 @@ export class BattleMenu {
 		//Если скипа нет, то анимируем текст
 		this.#queuedMessageAnimationPlaying = true;
 		animateText(this.#scene, this.#battleTextGameObjectLine1, messageToDisplay, {
-			delay: 50,
+			delay: dataManager.getAnimatedTextSpeed(),
 			callback: () => {
 				//В конце возвращаем курсор и ждем действия пользователя
 				this.playerInputCursorAnimation();
@@ -576,13 +574,9 @@ export class BattleMenu {
 			return;
 		}
 		if (this.#selectedBattleMenuOption === BATTLE_MENU_OPTIONS.ITEM) {
-			this.updateInfoPanelMessagesAndWaitForInput(
-				['Your bag is empty...'],
-				() => {
-					this.#switchToMainBattleMenu();
-				},
-				SKIP_BATTLE_ANIMATIONS,
-			);
+			this.updateInfoPanelMessagesAndWaitForInput(['Your bag is empty...'], () => {
+				this.#switchToMainBattleMenu();
+			});
 			this.#activeBattleMenu = ACTIVE_BATTE_MENU.BATTLE_ITEM;
 
 			// TODO
@@ -594,20 +588,15 @@ export class BattleMenu {
 				() => {
 					this.#switchToMainBattleMenu();
 				},
-				SKIP_BATTLE_ANIMATIONS,
 			);
 			this.#activeBattleMenu = ACTIVE_BATTE_MENU.BATTLE_SWITCH;
 			// TODO
 			return;
 		}
 		if (this.#selectedBattleMenuOption === BATTLE_MENU_OPTIONS.FLEE) {
-			this.updateInfoPanelMessagesAndWaitForInput(
-				['You fail to run away...'],
-				() => {
-					this.#switchToMainBattleMenu();
-				},
-				SKIP_BATTLE_ANIMATIONS,
-			);
+			this.updateInfoPanelMessagesAndWaitForInput(['You fail to run away...'], () => {
+				this.#switchToMainBattleMenu();
+			});
 			this.#activeBattleMenu = ACTIVE_BATTE_MENU.BATTLE_FLEE;
 			// TODO
 			return;
