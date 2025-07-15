@@ -134,6 +134,9 @@ export class WorldScene extends Phaser.Scene {
 			spriteGridMovementFinishedCallback: () => {
 				this.#handlePlayerMovementUpdate();
 			},
+			spriteChangedDirectionCallback: () => {
+				this.#handlePlayerDirectionUpdate();
+			},
 			otherCharactersToCheckForCollisionsWith: this.#npcs,
 		});
 
@@ -178,7 +181,7 @@ export class WorldScene extends Phaser.Scene {
 			x: this.#player.sprite.x,
 			y: this.#player.sprite.y,
 		});
-		dataManager.store.set(DATA_MANAGER_STORE_KEYS.PLAYER_DIRECTION, this.#player.direction);
+		dataManager.saveData();
 		if (!this.#encounterLayer) {
 			return;
 		}
@@ -196,10 +199,15 @@ export class WorldScene extends Phaser.Scene {
 				`[${WorldScene.name}:handlePlayerMovementUpdate] player encountered a wild monster`,
 			);
 			this.cameras.main.fadeOut(2000);
+
 			this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
 				this.scene.start(SCENE_KEYS.BATTLE_SCENE);
 			});
 		}
+	}
+
+	#handlePlayerDirectionUpdate() {
+		dataManager.store.set(DATA_MANAGER_STORE_KEYS.PLAYER_DIRECTION, this.#player.direction);
 	}
 
 	#handlePlayerInteraction() {

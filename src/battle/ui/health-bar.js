@@ -126,7 +126,7 @@ export class HealthBar {
 		this.#scene.tweens.add({
 			targets: this.#middle,
 			displayWidth: width,
-			duration: options?.duration || 1000,
+			duration: options?.duration || options?.duration === 0 ? 0 : 1000,
 			ease: Phaser.Math.Easing.Sine.Out,
 			onUpdate: () => {
 				this.#rightCap.x = this.#middle.x + this.#middle.displayWidth;

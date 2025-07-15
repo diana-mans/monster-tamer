@@ -81,7 +81,7 @@ export class BattleScene extends Phaser.Scene {
 				assetFrame: 0,
 				currentHp: 25,
 				maxHp: 25,
-				baseAttack: 15,
+				baseAttack: 5,
 				attackIds: [1],
 				currentLevel: 5,
 			},
@@ -93,9 +93,9 @@ export class BattleScene extends Phaser.Scene {
 				name: MONSTER_ASSET_KEYS.IGUANIGNITE,
 				assetKey: MONSTER_ASSET_KEYS.IGUANIGNITE,
 				assetFrame: 0,
-				currentHp: 25,
+				currentHp: 20,
 				maxHp: 25,
-				baseAttack: 5,
+				baseAttack: 15,
 				attackIds: [2],
 				currentLevel: 5,
 			},
@@ -110,10 +110,12 @@ export class BattleScene extends Phaser.Scene {
 		this.#attackManager = new AttackManager(this, this.#skipAnimations);
 
 		this.#controls = new Controls(this);
+		this.#controls.lockInput = true;
 	}
 
 	update() {
 		this.#battleStateMachine.update();
+		if (this.#controls.isInputLock) return;
 		const wasSpaceKeyPressed = this.#controls.wasSpaceKeyPressed();
 
 		//limit input based on the current battle state we ar in
@@ -268,6 +270,8 @@ export class BattleScene extends Phaser.Scene {
 				//Дожидаемся появления вражеского монстра и сообщаем игроку о нем
 				this.#activeEnemyMonster.playMonsterAppearAnimation(() => {
 					this.#activeEnemyMonster.playHealthBarAppearAnimation(() => undefined);
+					this.#controls.lockInput = false;
+
 					this.#battleMenu.updateInfoPanelMessagesAndWaitForInput(
 						[`wild ${this.#activeEnemyMonster.name} appeared!`],
 						() => {
